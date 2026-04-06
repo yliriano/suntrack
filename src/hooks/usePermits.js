@@ -23,16 +23,28 @@ const JURISDICTION_APIS = {
   co: ['co_fc'],
 };
 
+const CACHE_TTL = 30 * 60 * 1000;
+
 async function fetchSource(key) {
+  const cacheKey = 'st_v1_' + key;
+  try {
+    const hit = localStorage.getItem(cacheKey);
+    if (hit) {
+      const { ts, data } = JSON.parse(hit);
+      if (Date.now() - ts < CACHE_TTL) return data;
+    }
+  } catch(e) {}
   const cfg = APIS[key];
   if (!cfg) return [];
   const where = Array.isArray(cfg.solarWhere) ? cfg.solarWhere.join(' AND ') : cfg.solarWhere;
   const orderBy = cfg.orderField ? '&$order=' + cfg.orderField + ' DESC' : '';
-  const url = cfg.base + '?$where=' + encodeURIComponent(where) + orderBy + '&$limit=1000';
+  const url = cfg.base + '?$where=' + encodeURIComponent(where) + orderBy + '&$limit=300';
   const res = await fetch(url);
   if (!res.ok) throw new Error('HTTP ' + res.status + ' for ' + key);
   const raw = await res.json();
-  return raw.map(cfg.normalize);
+  const result = raw.map(cfg.normalize);
+  try { localStorage.setItem(cacheKey, JSON.stringify({ ts: Date.now(), data: result })); } catch(e) {}
+  return result;
 }
 const PORTAL_ONLY_JURISDICTIONS = new Set(['fl', 'az', 'ks', 'montgomery', 'pgcounty']);
 export const usePermits = (filters) => {

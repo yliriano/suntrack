@@ -15,8 +15,10 @@ async function fetchOne(key) {
     }
   } catch(e) {}
   try {
-    const orderQ = cfg.orderField ? `&$order=${cfg.orderField}+DESC` : '';
-    const url = `${cfg.base}?$limit=300${orderQ}`;
+    const dollar = '$';
+    const orderQ = cfg.orderField ? `&${dollar}order=${cfg.orderField}+DESC` : '';
+    const whereQ = cfg.whereClause ? `&${dollar}where=${encodeURIComponent(cfg.whereClause)}` : '';
+    const url = `${cfg.base}?${dollar}limit=300${orderQ}${whereQ}`;
     const res = await fetch(url);
     if (!res.ok) throw new Error('HTTP ' + res.status);
     const raw = await res.json();
